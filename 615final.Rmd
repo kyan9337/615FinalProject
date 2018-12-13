@@ -113,6 +113,7 @@ data("zipcode")
 ```
 
 ```{r}
+data("zipcode")
 colnames(Manhattan)[11] <- "zip"
 Manhattan$zip <- as.character(Manhattan$zip)
 Manhattan_zip <- inner_join(Manhattan,zipcode,by="zip")
