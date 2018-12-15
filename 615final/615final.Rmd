@@ -9,7 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r,echo=FALSE,warning=FALSE,comment=FALSE,message=FALSE}
 if (!require(tidyverse)) install.packages('tidyverse')
 library(tidyverse)
 if (!require(ggplot2)) install.packages('ggplot2')
@@ -32,20 +32,54 @@ if (!require(leaflet)) install.packages('leaflet')
 library(leaflet)
 if (!require(knitr)) install.packages('knitr')
 library(knitr)
+if (!require(png)) install.packages('png')
+library(png)
 ```
+# Introduction
 
+For this project, I'm investigarte dataset and trying to determine if it was fabricated or altered in some way. 
+
+###Description of data
+The data is NYC Manhattan property sale in year 2017 that obtained from NYC Department of Finance https://www1.nyc.gov/site/finance/taxes/property-annualized-sales-update.page. The data include the following useful variables for our future analysis:
+
+1)NEIGHBORHOOD.
+
+2)BUILDING CLASS CATEGORY.
+
+3)BUILDING CLASS AT TIME OF SALE. 
+
+4)ZIPCODE.
+
+5)LAND SQUARE FEET.
+
+6)GROSS SQUARE FEET.
+
+7)YEAR BUILT.
+
+8)SALE PRICE.
+
+9)SALE DATE.
+
+The interesting variable I am using in the dataset are Sale price,neighborhood, land and gross square feet, and sale date.
+
+For Benford analysis, I will analyze the sale price and see if the price was faked or not. 
+
+# EDA
+
+### Data Import and Cleaning
 ```{r}
 Manhattan <- read.csv("2017_manhattan.csv") %>% 
   select(2,9,11,12,13,15,16,17,19,20,21)
-
 ```
 
-```{r}
+```{r,echo=FALSE,warning=FALSE,comment=FALSE}
 ### Convert data format into correct format
 Manhattan$SALE.PRICE. <- as.numeric(gsub(",","",as.character(Manhattan$SALE.PRICE.),fixed=TRUE)) #Convert format to numeric for price 
 Manhattan$LAND.SQUARE.FEET. <- as.numeric(gsub(",","",as.character(Manhattan$LAND.SQUARE.FEET.),fixed=TRUE))#Convert format to numeric for land sqft
 Manhattan$GROSS.SQUARE.FEET. <- as.numeric(gsub(",","",as.character(Manhattan$GROSS.SQUARE.FEET.),fixed=TRUE))#Convert format to numeric for gross sqft
 Manhattan$SALE.DATE. <- as.Date(Manhattan$SALE.DATE.,"%m/%d/%Y")#conver date format
+
+#Create a new column indicate Sale Month
  M <- data.frame(Manhattan$SALE.DATE.,
             year = as.numeric(format(Manhattan$SALE.DATE., format = "%Y")),
             month = as.numeric(format(Manhattan$SALE.DATE., format = "%m")),
@@ -54,14 +88,17 @@ Manhattan$SALE.DATE. <- as.Date(Manhattan$SALE.DATE.,"%m/%d/%Y")#conver date for
 Manhattan <- cbind(Manhattan,M)
 colnames(Manhattan)[12] <- "Month"
 Manhattan$Month <- month.abb[Manhattan$Month]
-#Create a new column indicate Sale Month
+
+#convert format
 Manhattan <- filter(Manhattan,YEAR.BUILT.>1800)
 Manhattan$YEAR.BUILT.  <- ifelse(Manhattan$YEAR.BUILT.  == "0", NA, Manhattan$YEAR.BUILT) 
 Manhattan$YEAR.BUILT. <- as.Date(as.character(Manhattan$YEAR.BUILT.), format = "%Y")
 Manhattan$ZIP.CODE. <- as.character(Manhattan$ZIP.CODE.)
 Manhattan$BUILDING.CLASS.AT.TIME.OF.SALE. <- as.character(Manhattan$BUILDING.CLASS.AT.TIME.OF.SALE.)
 Manhattan$RESIDENTIAL.UNITS. <- as.numeric(as.character(Manhattan$RESIDENTIAL.UNITS.))
-# Price.Sum <- aggregate(SALE.PRICE. ~ Month+NEIGHBORHOOD.+ZIP.CODE.+YEAR.BUILT.+BUILDING.CLASS.AT.TIME.OF.SALE., Manhattan, FUN = 'sum')
+
+#Filter neighborhoods in midtown area
+Midtown <- filter(Manhattan,str_detect(Manhattan$NEIGHBORHOOD., "MIDTOWN"))
 ```
 
 
@@ -71,13 +108,16 @@ ggplot(Manhattan)+
    geom_bar(mapping = aes(x = NEIGHBORHOOD.))+
    theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   ggtitle("Property Sales Count Based on Location ")
+```
 
+```{r}
 ggplot(Manhattan)+
    geom_bar(mapping = aes(x = Month))+
    theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   ggtitle("Property Sales Count Based on Location ")
+```
 
-Midtown <- filter(Manhattan,str_detect(Manhattan$NEIGHBORHOOD., "MIDTOWN"))
+```{r}
 A <- ggplot(Midtown,aes(NEIGHBORHOOD., fill =BUILDING.CLASS.AT.TIME.OF.SALE.)) +
         geom_bar(position = "fill") +
       
@@ -87,8 +127,9 @@ A <- ggplot(Midtown,aes(NEIGHBORHOOD., fill =BUILDING.CLASS.AT.TIME.OF.SALE.)) +
         guides(fill=guide_legend(title="Answers"))+
   ggtitle("Midtown Sale's Building Class")
 A
+```
 
-
+```{r}
 ggplot(data = Manhattan,
   aes(Month, SALE.PRICE.)) +
   stat_summary(fun.y = sum, # adds up all observations for the month
@@ -97,8 +138,9 @@ ggplot(data = Manhattan,
    scale_y_continuous(labels = comma)+
  theme(axis.text.x = element_text(angle =60, hjust = 1))+
   ggtitle("Total Sales Price Per Month")
+```
 
-
+```{r}
 ggplot(data = Manhattan,
   aes(NEIGHBORHOOD., SALE.PRICE.)) +
   scale_y_continuous(labels = comma)+
@@ -106,8 +148,9 @@ ggplot(data = Manhattan,
     geom = "bar") + # or "line"
    theme(axis.text.x = element_text(angle =60, hjust = 1))+
   ggtitle("Total Sale Price in Each Neighborhood")
+```
 
-
+```{r}
 ggplot(data = Manhattan,
   aes(NEIGHBORHOOD., SALE.PRICE.)) +
   scale_y_continuous(labels = comma)+
@@ -115,8 +158,9 @@ ggplot(data = Manhattan,
     geom = "bar") + 
    theme(axis.text.x = element_text(angle =60, hjust = 1))+
   ggtitle("Median Sale Price in Each Neighborhood")
+```
 
-
+```{r}
 ggplot(data = Manhattan,
   aes(NEIGHBORHOOD., SALE.PRICE.)) +
   scale_y_continuous(labels = comma)+
@@ -124,14 +168,17 @@ ggplot(data = Manhattan,
     geom = "bar") + 
    theme(axis.text.x = element_text(angle =60, hjust = 1))+
   ggtitle("Mean Sale Price in Each Neighborhood")
+```
 
-
+```{r}
 ggplot(data = Midtown,
   aes(Month, fill = NEIGHBORHOOD.)) +
    theme(axis.text.x = element_text(angle =60, hjust = 1))+
    geom_bar(position = "dodge")+
   ggtitle("Property Sale in Midtown")
+```
 
+```{r}
 
 p <-  Midtown%>%
   filter(SALE.PRICE.<2210000000) %>% ggplot( aes(GROSS.SQUARE.FEET., SALE.PRICE., size = SALE.PRICE., color=NEIGHBORHOOD.)) +
@@ -140,7 +187,9 @@ p <-  Midtown%>%
     theme_bw()+
   ggtitle("Sale Price based on Gross square feet in each Neighborhood")
 p
+```
 
+```{r}
 gf <-  Midtown%>%
   filter(SALE.PRICE.<2210000000) %>% ggplot( aes(LAND.SQUARE.FEET., SALE.PRICE., size = SALE.PRICE., color=NEIGHBORHOOD.)) +
   geom_point() +
@@ -148,46 +197,26 @@ gf <-  Midtown%>%
     theme_bw()+
   ggtitle("Sale Price based on Land square feet in each Neighborhood")
 gf
+```
 
-
-
-
+```{r}
 ggplot(Manhattan)+aes(x=YEAR.BUILT.,y=log(SALE.PRICE.))+geom_point()
 ```
 
 
 ```{r}
-
 B <- ggplot(data = Midtown,aes(x=log(SALE.PRICE.),fill = NEIGHBORHOOD.))+
   geom_histogram()+
   ggtitle("Log Sale Prices Based on Location")
 B
-
-
-
-C <- ggplot(data = Midtown,aes(x=log(SALE.PRICE.),fill = BUILDING.CLASS.AT.TIME.OF.SALE.))+
-  geom_histogram()+
-  ggtitle("Log Sale Prices Based on Building Class")
-ggplotly(C)
-
-
-
 ```
 
 ```{r}
-####### Benford analysis
-bfd <- benford(Manhattan$SALE.PRICE.)
-plot(bfd)
-bfd
-suspects <- getSuspects(bfd, Manhattan)
-suspects
-manhattan_price <- getBfd(benford(Manhattan$SALE.PRICE.))
-kable(manhattan_price)
-kable(head(suspectsTable(benford(Manhattan$SALE.PRICE.)),10))
-
+C <- ggplot(data = Midtown,aes(x=log(SALE.PRICE.),fill = BUILDING.CLASS.AT.TIME.OF.SALE.))+
+  geom_histogram()+
+  ggtitle("Log Sale Prices Based on Building Class")
+C
 ```
-
-
 ```{r}
 data("zipcode")
 colnames(Manhattan)[3] <- "zip"
@@ -197,13 +226,49 @@ Manhattan_zip$latitude <- as.numeric(Manhattan_zip$latitude)
 Manhattan_zip$longitude <- as.numeric(Manhattan_zip$longitude)
 Ne_sum <- aggregate(SALE.PRICE.~NEIGHBORHOOD.,data = Manhattan_zip,sum)
 
-
 ASDF <- inner_join(Ne_sum, Manhattan_zip,by = "NEIGHBORHOOD.")
 ASDF <- distinct(ASDF,NEIGHBORHOOD.,.keep_all = TRUE)
 
-m <- leaflet(data =ASDF ) %>%
-  addTiles() %>%  # Add default OpenStreetMap map tiles
-  addMarkers( ~longitude,~latitude
-, popup = ~as.character(SALE.PRICE..x), label = ~as.character(NEIGHBORHOOD.))
-m  # Print the map
+# m <- leaflet(data =ASDF ) %>%
+#   addTiles() %>%  # Add default OpenStreetMap map tiles
+#   addMarkers( ~longitude,~latitude
+# , popup = ~as.character(SALE.PRICE..x), label = ~as.character(NEIGHBORHOOD.))
+# m  # Print the map
 ```
+
+```{r,scale=2,warning=FALSE}
+img_path1 <- "Capture.PNG"
+img1 <- readPNG(img_path1, native = TRUE, info = TRUE)
+# Small fig.width
+include_graphics(img_path1)
+```
+# Benford Law Analysis
+```{r}
+####### Benford analysis
+bfd <- benford(Manhattan$SALE.PRICE.)
+plot(bfd)
+```
+The original data is in dark color and the expected frequency are the red dash line. From the plot, we found that the first digits indicate the most data have a tendency to follows Benford's distribution. The digits distribution of second order test shows that there is a clear discrepancy around 50.
+
+Then, I print the main results of the analysis:
+
+```{r}
+bfd
+```
+The numbers of Mantissa from summary are Mean as 0.542, Var as 0.095, Ex.Kurtosis are -1.331, and Skewness are -0.222, which are close to expect value.
+Degree of freedom equals 89 and p-value is small enough that we are supposed to reject the benford's law. However, thinking of reality, price start with two digits of 99 or 89 are acceptable. 
+```{r}
+suspects <- getSuspects(bfd, Manhattan)
+suspects
+```
+
+
+```{r}
+manhattan_price <- getBfd(benford(Manhattan$SALE.PRICE.))
+kable(manhattan_price)
+kable(head(suspectsTable(benford(Manhattan$SALE.PRICE.)),10))
+```
+# Conclusion
+
+By looking at the five output result for Benford's law, it looks like that they are following Benford distribution. Although there are some deviation for some digits, but it may be due to some marketing strategy. Therefore, I think this dataset for sale price are good to trust. 
+
