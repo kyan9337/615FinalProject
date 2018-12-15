@@ -10,35 +10,87 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+if (!require(tidyverse)) install.packages('tidyverse')
 library(tidyverse)
+if (!require(ggplot2)) install.packages('ggplot2')
 library(ggplot2)
+if (!require(plotly)) install.packages('plotly')
 library(plotly)
+if (!require(scales)) install.packages('scales')
 library(scales)
+if (!require(zipcode)) install.packages('zipcode')
 library(zipcode)
+if (!require(devtools)) install.packages('devtools')
 library(devtools)
+if (!require(mapdata)) install.packages('mapdata')
 library(mapdata)
+if (!require(ggmap)) install.packages('ggmap')
 library(ggmap)
+if (!require(benford.analysis)) install.packages('benford.analysis')
+library(benford.analysis)
+if (!require(leaflet)) install.packages('leaflet')
+library(leaflet)
 ```
 
 ```{r}
-Manhattan <- read.csv("2017_manhattan.csv")
+Manhattan <- read.csv("2017_manhattan.csv") %>% 
+  select(2,9,11,12,13,15,16,17,19,20,21)
+
 ```
 
 ```{r}
-Manhattan$SALE.PRICE. <- as.numeric(gsub(",","",as.character(Manhattan$SALE.PRICE.),fixed=TRUE)) 
-Manhattan$LAND.SQUARE.FEET. <- as.numeric(gsub(",","",as.character(Manhattan$LAND.SQUARE.FEET.),fixed=TRUE))
-Manhattan$GROSS.SQUARE.FEET. <- as.numeric(gsub(",","",as.character(Manhattan$GROSS.SQUARE.FEET.),fixed=TRUE))
-Manhattan$SALE.DATE. <- as.Date(Manhattan$SALE.DATE.,"%m/%d/%Y")
+### Convert data format into correct format
+Manhattan$SALE.PRICE. <- as.numeric(gsub(",","",as.character(Manhattan$SALE.PRICE.),fixed=TRUE)) #Convert format to numeric for price 
+Manhattan$LAND.SQUARE.FEET. <- as.numeric(gsub(",","",as.character(Manhattan$LAND.SQUARE.FEET.),fixed=TRUE))#Convert format to numeric for land sqft
+Manhattan$GROSS.SQUARE.FEET. <- as.numeric(gsub(",","",as.character(Manhattan$GROSS.SQUARE.FEET.),fixed=TRUE))#Convert format to numeric for gross sqft
+Manhattan$SALE.DATE. <- as.Date(Manhattan$SALE.DATE.,"%m/%d/%Y")#conver date format
+ M <- data.frame(Manhattan$SALE.DATE.,
+            year = as.numeric(format(Manhattan$SALE.DATE., format = "%Y")),
+            month = as.numeric(format(Manhattan$SALE.DATE., format = "%m")),
+          day = as.numeric(format(Manhattan$SALE.DATE., format = "%d"))) %>% 
+   select(3)
+Manhattan <- cbind(Manhattan,M)
+colnames(Manhattan)[12] <- "Month"
+Manhattan$Month <- month.abb[Manhattan$Month]
+#Create a new column indicate Sale Month
+Manhattan <- filter(Manhattan,YEAR.BUILT.>1800)
+Manhattan$YEAR.BUILT.  <- ifelse(Manhattan$YEAR.BUILT.  == "0", NA, Manhattan$YEAR.BUILT) 
+Manhattan$YEAR.BUILT. <- as.Date(as.character(Manhattan$YEAR.BUILT.), format = "%Y")
+Manhattan$ZIP.CODE. <- as.character(Manhattan$ZIP.CODE.)
+Manhattan$BUILDING.CLASS.AT.TIME.OF.SALE. <- as.character(Manhattan$BUILDING.CLASS.AT.TIME.OF.SALE.)
+Manhattan$RESIDENTIAL.UNITS. <- as.numeric(as.character(Manhattan$RESIDENTIAL.UNITS.))
+# Price.Sum <- aggregate(SALE.PRICE. ~ Month+NEIGHBORHOOD.+ZIP.CODE.+YEAR.BUILT.+BUILDING.CLASS.AT.TIME.OF.SALE., Manhattan, FUN = 'sum')
+```
+
+
+
+```{r}
+
+
+
+
+
+
+ggplot(Manhattan)+aes(x=YEAR.BUILT.,y=log(SALE.PRICE.))+geom_point()
 ```
 
 ```{r}
-ggplot(Manhattan)+
-   geom_bar(mapping = aes(x = NEIGHBORHOOD.))+
-   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+Midtown <- filter(Manhattan,str_detect(Manhattan$NEIGHBORHOOD., "MIDTOWN")) 
+
+```
+
+```{r}
+
+B <- ggplot(data = Midtown,aes(x=log(SALE.PRICE.),fill = NEIGHBORHOOD.))+
+  geom_histogram()
+ggplotly(B)
 
 
 
-Midtown <- filter(Manhattan,str_detect(Manhattan$NEIGHBORHOOD., "MIDTOWN"))
+C <- ggplot(data = Midtown,aes(x=log(SALE.PRICE.),fill = BUILDING.CLASS.AT.TIME.OF.SALE.))+
+  geom_histogram()
+ggplotly(C)
+
 A <- ggplot(Midtown,aes(NEIGHBORHOOD., fill =BUILDING.CLASS.AT.TIME.OF.SALE.)) +
         geom_bar(position = "fill") +
       
@@ -47,41 +99,6 @@ A <- ggplot(Midtown,aes(NEIGHBORHOOD., fill =BUILDING.CLASS.AT.TIME.OF.SALE.)) +
         theme(axis.text.x = element_text(size = 12, angle =45, hjust = 1)) + 
         guides(fill=guide_legend(title="Answers"))
 ggplotly(A)
-
-
-Midtown$Month <- as.Date(cut(Midtown$SALE.DATE.,
-  breaks = "month"))
-
-Manhattan$Month <- as.Date(cut(Manhattan$SALE.DATE.,
-  breaks = "month"))
-
-ggplot(data = Manhattan,
-  aes(Month, SALE.PRICE.)) +
-  stat_summary(fun.y = sum, # adds up all observations for the month
-    geom = "bar") + # or "line"
-  scale_x_date(labels = date_format("%Y-%m"), breaks = "1 month") +# custom x-axis labels
- theme(axis.text.x = element_text(angle =60, hjust = 1))
-
-ggplot(data = Manhattan,
-  aes(NEIGHBORHOOD., SALE.PRICE.)) +
-  scale_y_continuous(labels = comma)+
-  stat_summary(fun.y = sum, # adds up all observations for the month
-    geom = "bar") + # or "line"
-   theme(axis.text.x = element_text(angle =60, hjust = 1))
-
-ggplot(data = Manhattan,
-  aes(NEIGHBORHOOD., SALE.PRICE.)) +
-  scale_y_continuous(labels = comma)+
-  stat_summary(fun.y = median, # adds up all observations for the month
-    geom = "bar") + 
-   theme(axis.text.x = element_text(angle =60, hjust = 1))
-
-ggplot(data = Manhattan,
-  aes(NEIGHBORHOOD., SALE.PRICE.)) +
-  scale_y_continuous(labels = comma)+
-  stat_summary(fun.y = mean, # adds up all observations for the month
-    geom = "bar") + 
-   theme(axis.text.x = element_text(angle =60, hjust = 1))
 
 ggplot(data = Midtown,
   aes(Month, fill = NEIGHBORHOOD.)) +
@@ -100,7 +117,7 @@ ggplotly(p)
 ```
 
 ```{r}
-library(benford.analysis)
+####### Benford analysis
 bfd <- benford(Manhattan$SALE.PRICE.)
 plot(bfd)
 bfd
@@ -108,22 +125,20 @@ suspects <- getSuspects(bfd, Manhattan)
 suspects
 ```
 
-```{r}
-data("zipcode")
-```
 
 ```{r}
 data("zipcode")
-colnames(Manhattan)[11] <- "zip"
+colnames(Manhattan)[3] <- "zip"
 Manhattan$zip <- as.character(Manhattan$zip)
 Manhattan_zip <- inner_join(Manhattan,zipcode,by="zip")
 Manhattan_zip$latitude <- as.numeric(Manhattan_zip$latitude)
 Manhattan_zip$longitude <- as.numeric(Manhattan_zip$longitude)
 Ne_sum <- aggregate(SALE.PRICE.~NEIGHBORHOOD.,data = Manhattan_zip,sum)
 
+
 ASDF <- inner_join(Ne_sum, Manhattan_zip,by = "NEIGHBORHOOD.")
 ASDF <- distinct(ASDF,NEIGHBORHOOD.,.keep_all = TRUE)
-library(leaflet)
+
 m <- leaflet(data =ASDF ) %>%
   addTiles() %>%  # Add default OpenStreetMap map tiles
   addMarkers( ~longitude,~latitude
