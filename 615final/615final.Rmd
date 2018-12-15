@@ -72,6 +72,10 @@ ggplot(Manhattan)+
    theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   ggtitle("Property Sales Count Based on Location ")
 
+ggplot(Manhattan)+
+   geom_bar(mapping = aes(x = Month))+
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  ggtitle("Property Sales Count Based on Location ")
 
 Midtown <- filter(Manhattan,str_detect(Manhattan$NEIGHBORHOOD., "MIDTOWN"))
 A <- ggplot(Midtown,aes(NEIGHBORHOOD., fill =BUILDING.CLASS.AT.TIME.OF.SALE.)) +
@@ -164,7 +168,7 @@ B
 C <- ggplot(data = Midtown,aes(x=log(SALE.PRICE.),fill = BUILDING.CLASS.AT.TIME.OF.SALE.))+
   geom_histogram()+
   ggtitle("Log Sale Prices Based on Building Class")
-C
+ggplotly(C)
 
 
 
