@@ -30,6 +30,8 @@ if (!require(benford.analysis)) install.packages('benford.analysis')
 library(benford.analysis)
 if (!require(leaflet)) install.packages('leaflet')
 library(leaflet)
+if (!require(knitr)) install.packages('knitr')
+library(knitr)
 ```
 
 ```{r}
@@ -65,8 +67,83 @@ Manhattan$RESIDENTIAL.UNITS. <- as.numeric(as.character(Manhattan$RESIDENTIAL.UN
 
 
 ```{r}
+ggplot(Manhattan)+
+   geom_bar(mapping = aes(x = NEIGHBORHOOD.))+
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  ggtitle("Property Sales Count Based on Location ")
 
 
+Midtown <- filter(Manhattan,str_detect(Manhattan$NEIGHBORHOOD., "MIDTOWN"))
+A <- ggplot(Midtown,aes(NEIGHBORHOOD., fill =BUILDING.CLASS.AT.TIME.OF.SALE.)) +
+        geom_bar(position = "fill") +
+      
+        xlab ("Categories") +
+        ylab("Percentage") + 
+        theme(axis.text.x = element_text(size = 12, angle =45, hjust = 1)) + 
+        guides(fill=guide_legend(title="Answers"))+
+  ggtitle("Midtown Sale's Building Class")
+A
+
+
+ggplot(data = Manhattan,
+  aes(Month, SALE.PRICE.)) +
+  stat_summary(fun.y = sum, # adds up all observations for the month
+    geom = "bar") + # or "line"
+  # custom x-axis labels
+   scale_y_continuous(labels = comma)+
+ theme(axis.text.x = element_text(angle =60, hjust = 1))+
+  ggtitle("Total Sales Price Per Month")
+
+
+ggplot(data = Manhattan,
+  aes(NEIGHBORHOOD., SALE.PRICE.)) +
+  scale_y_continuous(labels = comma)+
+  stat_summary(fun.y = sum, # adds up all observations for the month
+    geom = "bar") + # or "line"
+   theme(axis.text.x = element_text(angle =60, hjust = 1))+
+  ggtitle("Total Sale Price in Each Neighborhood")
+
+
+ggplot(data = Manhattan,
+  aes(NEIGHBORHOOD., SALE.PRICE.)) +
+  scale_y_continuous(labels = comma)+
+  stat_summary(fun.y = median, # adds up all observations for the month
+    geom = "bar") + 
+   theme(axis.text.x = element_text(angle =60, hjust = 1))+
+  ggtitle("Median Sale Price in Each Neighborhood")
+
+
+ggplot(data = Manhattan,
+  aes(NEIGHBORHOOD., SALE.PRICE.)) +
+  scale_y_continuous(labels = comma)+
+  stat_summary(fun.y = mean, # adds up all observations for the month
+    geom = "bar") + 
+   theme(axis.text.x = element_text(angle =60, hjust = 1))+
+  ggtitle("Mean Sale Price in Each Neighborhood")
+
+
+ggplot(data = Midtown,
+  aes(Month, fill = NEIGHBORHOOD.)) +
+   theme(axis.text.x = element_text(angle =60, hjust = 1))+
+   geom_bar(position = "dodge")+
+  ggtitle("Property Sale in Midtown")
+
+
+p <-  Midtown%>%
+  filter(SALE.PRICE.<2210000000) %>% ggplot( aes(GROSS.SQUARE.FEET., SALE.PRICE., size = SALE.PRICE., color=NEIGHBORHOOD.)) +
+  geom_point() +
+  scale_y_continuous(labels = comma)+
+    theme_bw()+
+  ggtitle("Sale Price based on Gross square feet in each Neighborhood")
+p
+
+gf <-  Midtown%>%
+  filter(SALE.PRICE.<2210000000) %>% ggplot( aes(LAND.SQUARE.FEET., SALE.PRICE., size = SALE.PRICE., color=NEIGHBORHOOD.)) +
+  geom_point() +
+  scale_y_continuous(labels = comma)+
+    theme_bw()+
+  ggtitle("Sale Price based on Land square feet in each Neighborhood")
+gf
 
 
 
@@ -74,43 +151,20 @@ Manhattan$RESIDENTIAL.UNITS. <- as.numeric(as.character(Manhattan$RESIDENTIAL.UN
 ggplot(Manhattan)+aes(x=YEAR.BUILT.,y=log(SALE.PRICE.))+geom_point()
 ```
 
-```{r}
-Midtown <- filter(Manhattan,str_detect(Manhattan$NEIGHBORHOOD., "MIDTOWN")) 
-
-```
 
 ```{r}
 
 B <- ggplot(data = Midtown,aes(x=log(SALE.PRICE.),fill = NEIGHBORHOOD.))+
-  geom_histogram()
-ggplotly(B)
+  geom_histogram()+
+  ggtitle("Log Sale Prices Based on Location")
+B
 
 
 
 C <- ggplot(data = Midtown,aes(x=log(SALE.PRICE.),fill = BUILDING.CLASS.AT.TIME.OF.SALE.))+
-  geom_histogram()
-ggplotly(C)
-
-A <- ggplot(Midtown,aes(NEIGHBORHOOD., fill =BUILDING.CLASS.AT.TIME.OF.SALE.)) +
-        geom_bar(position = "fill") +
-      
-        xlab ("Categories") +
-        ylab("Percentage") + 
-        theme(axis.text.x = element_text(size = 12, angle =45, hjust = 1)) + 
-        guides(fill=guide_legend(title="Answers"))
-ggplotly(A)
-
-ggplot(data = Midtown,
-  aes(Month, fill = NEIGHBORHOOD.)) +
-   theme(axis.text.x = element_text(angle =60, hjust = 1))+
-   geom_bar(position = "dodge")
-
-p <-  Midtown%>%
-  filter(SALE.PRICE.<2210000000) %>% ggplot( aes(GROSS.SQUARE.FEET., SALE.PRICE., size = SALE.PRICE., color=NEIGHBORHOOD.)) +
-  geom_point() +
-  scale_y_continuous(labels = comma)+
-    theme_bw()
-ggplotly(p)
+  geom_histogram()+
+  ggtitle("Log Sale Prices Based on Building Class")
+C
 
 
 
@@ -123,6 +177,10 @@ plot(bfd)
 bfd
 suspects <- getSuspects(bfd, Manhattan)
 suspects
+manhattan_price <- getBfd(benford(Manhattan$SALE.PRICE.))
+kable(manhattan_price)
+kable(head(suspectsTable(benford(Manhattan$SALE.PRICE.)),10))
+
 ```
 
 
